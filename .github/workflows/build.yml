@@ -62,6 +62,7 @@ jobs:
         asset_name: ${{ env.ASSET_NAME }}
         tag: "0.0.0-nightly"
         overwrite: true
+        prerelease: true
         body: "Dev branch"
 
     - name: Upload checksum to release (Dev)
@@ -73,7 +74,6 @@ jobs:
         asset_name: ${{ env.ASSET_NAME }}.sha256
         tag: "0.0.0-nightly"
         overwrite: true
-        body: "Dev branch"
 
     # Release tags (for tags)
     - name: Upload binaries to release (Tag)
@@ -96,4 +96,3 @@ jobs:
         asset_name: ${{ env.ASSET_NAME }}.sha256
         tag: ${{ github.ref }}
         overwrite: true
-        body: Version ${{ github.ref }}
