@@ -38,12 +38,12 @@ jobs:
 
     - name: Set variables
       run: |
+        FILENAME=this_updater_of_mine
         if [ "$RUNNER_OS" == "Windows" ]; then
-          echo "BINARY_FILE=install/bin/this_updater_of_mine.exe" >> $GITHUB_ENV
-        else
-          echo "BINARY_FILE=install/bin/this_updater_of_mine" >> $GITHUB_ENV
+          FILENAME=$FILENAME.exe
         fi
-        echo "OUTPUT_FILE=${{ matrix.platform.os }}_${{ matrix.platform.arch }}_$BINARY_FILE" >> $GITHUB_ENV
+        echo "BINARY_FILE=$FILENAME" >> $GITHUB_ENV
+        echo "OUTPUT_FILE=${{ matrix.platform.os }}_${{ matrix.platform.arch }}_$FILENAME" >> $GITHUB_ENV
       shell: bash
 
     - name: Compute checksum of binary
