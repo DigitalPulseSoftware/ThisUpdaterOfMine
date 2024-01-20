@@ -1,0 +1,102 @@
+name: Build & Push binaries
+
+permissions:
+  contents: write
+
+on:
+  push:
+  pull_request:
+      paths-ignore:
+        - '.gitignore'
+        - 'LICENSE'
+        - 'README.md'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+        - { runner: windows-latest, os: windows, arch: x64 }
+        - { runner: ubuntu-latest,  os: linux,   arch: x86_64 }
+        - { runner: macos-latest,   os: macos,   arch: x86_64 }
+        #- { runner: macos-latest,   os: macos,   arch: arm64 }
+
+    runs-on: ${{ matrix.platform.runner }}
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Build
+      run: cargo build --verbose
+
+    - name: Install
+      run: cargo install --bins --path . --root install --verbose
+
+    - name: Set variables
+      run: |
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          echo "BINARY_FILE=install/bin/this_updater_of_mine.exe" >> $GITHUB_ENV
+        else
+          echo "BINARY_FILE=install/bin/this_updater_of_mine" >> $GITHUB_ENV
+        fi
+        echo "OUTPUT_FILE=${{ matrix.platform.os }}_${{ matrix.platform.arch }}_$BINARY_FILE" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Compute checksum of binary
+      run: |
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          sha256sum -b "$BINARY_FILE" > "$OUTPUT_FILE.sha256"
+        else
+          shasum -a 256 -b "$BINARY_FILE" > "$OUTPUT_FILE.sha256"
+        fi
+      shell: bash
+
+    # Nightly tags (for commits to dev branch)
+    - name: Upload binaries to release (Dev)
+      uses: svenstaro/upload-release-action@v2
+      if: ${{ (github.ref == 'refs/heads/dev') && github.event_name == 'push' }}
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: ${{ env.OUTPUT_FILE }}
+        asset_name: ${{ env.OUTPUT_FILE }}
+        tag: "0.0.0-nightly"
+        overwrite: true
+        body: "Dev branch"
+
+    - name: Upload checksum to release (Dev)
+      uses: svenstaro/upload-release-action@v2
+      if: ${{ (github.ref == 'refs/heads/dev') && github.event_name == 'push' }}
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: ${{ env.OUTPUT_FILE }}.sha256
+        asset_name: ${{ env.OUTPUT_FILE }}.sha256
+        tag: "0.0.0-nightly"
+        overwrite: true
+        body: "Dev branch"
+
+    # Release tags (for tags)
+    - name: Upload binaries to release (Tag)
+      uses: svenstaro/upload-release-action@v2
+      if: ${{ startsWith(github.event.ref, 'refs/tags/') && matrix.mode == 'releasedbg' }}
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: ${{ env.OUTPUT_FILE }}
+        asset_name: ${{ env.OUTPUT_FILE }}
+        tag: ${{ github.ref }}
+        overwrite: true
+        body: Version ${{ github.ref }}
+
+    - name: Upload binaries to release (Tag)
+      uses: svenstaro/upload-release-action@v2
+      if: ${{ startsWith(github.event.ref, 'refs/tags/') && matrix.mode == 'releasedbg' }}
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: ${{ env.OUTPUT_FILE }}.sha256
+        asset_name: ${{ env.OUTPUT_FILE }}.sha256
+        tag: ${{ github.ref }}
+        overwrite: true
+        body: Version ${{ github.ref }}
