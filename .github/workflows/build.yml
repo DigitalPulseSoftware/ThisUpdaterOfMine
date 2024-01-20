@@ -39,16 +39,17 @@ jobs:
         if [ "$RUNNER_OS" == "Windows" ]; then
           FILENAME=$FILENAME.exe
         fi
-        echo "OUTPUT_PATH=install/bin/$FILENAME" >> $GITHUB_ENV
+        mv install/bin/$FILENAME $FILENAME
+        echo "BINARY_NAME=$FILENAME" >> $GITHUB_ENV
         echo "ASSET_NAME=${{ matrix.platform.os }}_${{ matrix.platform.arch }}_$FILENAME" >> $GITHUB_ENV
       shell: bash
 
     - name: Compute checksum of binary
       run: |
         if [ "$RUNNER_OS" == "Windows" ]; then
-          sha256sum -b "$OUTPUT_PATH" > "$ASSET_NAME.sha256"
+          sha256sum -b "$BINARY_NAME" > "$ASSET_NAME.sha256"
         else
-          shasum -a 256 -b "$OUTPUT_PATH" > "$ASSET_NAME.sha256"
+          shasum -a 256 -b "$BINARY_NAME" > "$ASSET_NAME.sha256"
         fi
       shell: bash
 
@@ -58,7 +59,7 @@ jobs:
       if: ${{ (github.ref == 'refs/heads/dev') && github.event_name == 'push' }}
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ${{ env.OUTPUT_PATH }}
+        file: ${{ env.BINARY_NAME }}
         asset_name: ${{ env.ASSET_NAME }}
         tag: "0.0.0-nightly"
         overwrite: true
@@ -81,7 +82,7 @@ jobs:
       if: ${{ startsWith(github.event.ref, 'refs/tags/') }}
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ${{ env.OUTPUT_PATH }}
+        file: ${{ env.BINARY_NAME }}
         asset_name: ${{ env.ASSET_NAME }}
         tag: ${{ github.ref }}
         overwrite: true
