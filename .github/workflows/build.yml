@@ -40,7 +40,7 @@ jobs:
           FILENAME=$FILENAME.exe
         fi
         PLATFORM=${{ matrix.platform.os }}_${{ matrix.platform.arch }}
-        ASSET_NAME=$PLATFORM_$FILENAME
+        ASSET_NAME=${PLATFORM}_$FILENAME
         mv install/bin/$FILENAME $ASSET_NAME
         echo "ASSET_NAME=$ASSET_NAME" >> $GITHUB_ENV
       shell: bash
