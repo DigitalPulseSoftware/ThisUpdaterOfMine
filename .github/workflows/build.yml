@@ -30,10 +30,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Build
-      run: cargo build --verbose
-
-    - name: Install
+    - name: Build and install
       run: cargo install --bins --path . --root install --verbose
 
     - name: Set variables
@@ -42,16 +39,16 @@ jobs:
         if [ "$RUNNER_OS" == "Windows" ]; then
           FILENAME=$FILENAME.exe
         fi
-        echo "BINARY_FILE=$FILENAME" >> $GITHUB_ENV
-        echo "OUTPUT_FILE=${{ matrix.platform.os }}_${{ matrix.platform.arch }}_$FILENAME" >> $GITHUB_ENV
+        echo "OUTPUT_PATH=$FILENAME" >> $GITHUB_ENV
+        echo "ASSET_NAME=${{ matrix.platform.os }}_${{ matrix.platform.arch }}_$FILENAME" >> $GITHUB_ENV
       shell: bash
 
     - name: Compute checksum of binary
       run: |
         if [ "$RUNNER_OS" == "Windows" ]; then
-          sha256sum -b "$BINARY_FILE" > "$OUTPUT_FILE.sha256"
+          sha256sum -b "$OUTPUT_PATH" > "$ASSET_NAME.sha256"
         else
-          shasum -a 256 -b "$BINARY_FILE" > "$OUTPUT_FILE.sha256"
+          shasum -a 256 -b "$OUTPUT_PATH" > "$ASSET_NAME.sha256"
         fi
       shell: bash
 
@@ -61,8 +58,8 @@ jobs:
       if: ${{ (github.ref == 'refs/heads/dev') && github.event_name == 'push' }}
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ${{ env.OUTPUT_FILE }}
-        asset_name: ${{ env.OUTPUT_FILE }}
+        file: ${{ env.OUTPUT_PATH }}
+        asset_name: ${{ env.ASSET_NAME }}
         tag: "0.0.0-nightly"
         overwrite: true
         body: "Dev branch"
@@ -72,8 +69,8 @@ jobs:
       if: ${{ (github.ref == 'refs/heads/dev') && github.event_name == 'push' }}
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ${{ env.OUTPUT_FILE }}.sha256
-        asset_name: ${{ env.OUTPUT_FILE }}.sha256
+        file: ${{ env.ASSET_NAME }}.sha256
+        asset_name: ${{ env.ASSET_NAME }}.sha256
         tag: "0.0.0-nightly"
         overwrite: true
         body: "Dev branch"
@@ -84,8 +81,8 @@ jobs:
       if: ${{ startsWith(github.event.ref, 'refs/tags/') && matrix.mode == 'releasedbg' }}
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ${{ env.OUTPUT_FILE }}
-        asset_name: ${{ env.OUTPUT_FILE }}
+        file: ${{ env.OUTPUT_PATH }}
+        asset_name: ${{ env.ASSET_NAME }}
         tag: ${{ github.ref }}
         overwrite: true
         body: Version ${{ github.ref }}
@@ -95,8 +92,8 @@ jobs:
       if: ${{ startsWith(github.event.ref, 'refs/tags/') && matrix.mode == 'releasedbg' }}
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ${{ env.OUTPUT_FILE }}.sha256
-        asset_name: ${{ env.OUTPUT_FILE }}.sha256
+        file: ${{ env.ASSET_NAME }}.sha256
+        asset_name: ${{ env.ASSET_NAME }}.sha256
         tag: ${{ github.ref }}
         overwrite: true
         body: Version ${{ github.ref }}
