@@ -39,7 +39,7 @@ jobs:
         if [ "$RUNNER_OS" == "Windows" ]; then
           FILENAME=$FILENAME.exe
         fi
-        echo "OUTPUT_PATH=$FILENAME" >> $GITHUB_ENV
+        echo "OUTPUT_PATH=install/bin/$FILENAME" >> $GITHUB_ENV
         echo "ASSET_NAME=${{ matrix.platform.os }}_${{ matrix.platform.arch }}_$FILENAME" >> $GITHUB_ENV
       shell: bash
 
