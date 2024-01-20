@@ -40,8 +40,9 @@ jobs:
           FILENAME=$FILENAME.exe
         fi
         PLATFORM=${{ matrix.platform.os }}_${{ matrix.platform.arch }}
-        mv install/bin/$FILENAME $PLATFORM_$FILENAME
-        echo "ASSET_NAME=$PLATFORM_$FILENAME" >> $GITHUB_ENV
+        ASSET_NAME=$PLATFORM_$FILENAME
+        mv install/bin/$FILENAME $ASSET_NAME
+        echo "ASSET_NAME=$ASSET_NAME" >> $GITHUB_ENV
       shell: bash
 
     - name: Compute checksum of binary
@@ -64,7 +65,6 @@ jobs:
         tag: "0.0.0-nightly"
         overwrite: true
         prerelease: true
-        body: "Dev branch"
 
     - name: Upload checksum to release (Dev)
       uses: svenstaro/upload-release-action@v2
