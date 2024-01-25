@@ -10,12 +10,12 @@ use sysinfo::{Pid, ProcessRefreshKind, RefreshKind, System};
 use tar::Archive;
 use zip::ZipArchive;
 
-struct DecompressorTarGz {
-    file: File,
-}
+struct DecompressorTarGz(File);
+struct DecompressorZip(File);
 
-struct DecompressorZip {
-    file: File,
+enum CompressedFile {
+    TarGz(DecompressorTarGz),
+    Zip(DecompressorZip),
 }
 
 trait Decompressor {
@@ -24,7 +24,7 @@ trait Decompressor {
 
 impl Decompressor for DecompressorTarGz {
     fn extract(&self, dst: &Path) -> io::Result<()> {
-        let decoder = GzDecoder::new(&self.file);
+        let decoder = GzDecoder::new(&self.0);
         let mut archive = Archive::new(decoder);
 
         archive.unpack(dst)
@@ -33,8 +33,17 @@ impl Decompressor for DecompressorTarGz {
 
 impl Decompressor for DecompressorZip {
     fn extract(&self, dst: &Path) -> io::Result<()> {
-        let mut archive = ZipArchive::new(&self.file)?;
+        let mut archive = ZipArchive::new(&self.0)?;
         Ok(archive.extract(dst)?)
+    }
+}
+
+impl Decompressor for CompressedFile {
+    fn extract(&self, dst: &Path) -> io::Result<()> {
+        match self {
+            CompressedFile::TarGz(file) => file.extract(dst),
+            CompressedFile::Zip(file) => file.extract(dst),
+        }
     }
 }
 
@@ -71,47 +80,22 @@ fn main() -> std::io::Result<()> {
             continue;
         }
 
-        let ext = path.extension();
-        if ext.is_none() {
-            continue;
-        }
-
-        let archive: Option<Box<dyn Decompressor>> = match path.extension().and_then(OsStr::to_str)
-        {
-            Some("gz") => {
-                if let Ok(compressed_file) = File::open(path) {
-                    Some(Box::new(DecompressorTarGz {
-                        file: compressed_file,
-                    }))
-                } else {
-                    panic!("failed to open {0}", path.display());
-                }
-            }
-            Some("zip") => {
-                if let Ok(compressed_file) = File::open(path) {
-                    Some(Box::new(DecompressorZip {
-                        file: compressed_file,
-                    }))
-                } else {
-                    panic!("failed to open {0}", path.display());
-                }
-            }
-            Some(ext) => {
-                panic!("unknown extension {ext} for file {0}", path.display());
-            }
-            _ => {
-                panic!("failed to get extension of file {0}", path.display());
-            }
+        let archive = match path.extension().and_then(OsStr::to_str) {
+            Some("gz") => match File::open(path) {
+                Ok(compressed_file) => CompressedFile::TarGz(DecompressorTarGz(compressed_file)),
+                Err(_) => panic!("failed to open {0}", path.display()),
+            },
+            Some("zip") => match File::open(path) {
+                Ok(compressed_file) => CompressedFile::Zip(DecompressorZip(compressed_file)),
+                Err(_) => panic!("failed to open {0}", path.display()),
+            },
+            Some(ext) => panic!("unknown extension {ext} for file {0}", path.display()),
+            None => continue,
         };
 
-        if archive.is_none() {
-            continue;
-        }
-
         println!("extracting {}", path.display());
-        let result = archive.unwrap().extract(temp_folder);
-        if result.is_err() {
-            panic!("extraction failed: {}", result.unwrap_err());
+        if let Err(err) = archive.extract(temp_folder) {
+            panic!("extraction failed: {err}");
         }
     }
 
@@ -134,12 +118,12 @@ fn main() -> std::io::Result<()> {
     fs::remove_dir(temp_folder)?;
 
     // Start the updated game
-    let executable_path = Path::canonicalize(Path::new(executable_name))?;
+    let executable_path = Path::new(executable_name).canonicalize()?;
 
-    match spawn_detached_process(&executable_path) {
+    match spawn_detached_process(executable_path.as_path()) {
         Ok(_) => Ok(()),
         Err(err) => {
-            println!("failed to start {executable_name}: {err}");
+            eprintln!("failed to start {executable_name}: {err}");
             Err(err)
         }
     }
