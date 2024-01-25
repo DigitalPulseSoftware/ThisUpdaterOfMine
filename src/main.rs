@@ -1,53 +1,18 @@
-use flate2::read::GzDecoder;
+use std::env;
 use std::ffi::OsStr;
+use std::fs;
 use std::fs::File;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process;
 use std::str::FromStr;
-use std::{env, fs};
 use sysinfo::{Pid, ProcessRefreshKind, RefreshKind, System};
-use tar::Archive;
-use zip::ZipArchive;
 
-struct DecompressorTarGz(File);
-struct DecompressorZip(File);
+use crate::decompressor::{CompressedFile, Decompressor, DecompressorTarGz, DecompressorZip};
 
-enum CompressedFile {
-    TarGz(DecompressorTarGz),
-    Zip(DecompressorZip),
-}
+mod decompressor;
 
-trait Decompressor {
-    fn extract(&self, file: &Path) -> io::Result<()>;
-}
-
-impl Decompressor for DecompressorTarGz {
-    fn extract(&self, dst: &Path) -> io::Result<()> {
-        let decoder = GzDecoder::new(&self.0);
-        let mut archive = Archive::new(decoder);
-
-        archive.unpack(dst)
-    }
-}
-
-impl Decompressor for DecompressorZip {
-    fn extract(&self, dst: &Path) -> io::Result<()> {
-        let mut archive = ZipArchive::new(&self.0)?;
-        Ok(archive.extract(dst)?)
-    }
-}
-
-impl Decompressor for CompressedFile {
-    fn extract(&self, dst: &Path) -> io::Result<()> {
-        match self {
-            CompressedFile::TarGz(file) => file.extract(dst),
-            CompressedFile::Zip(file) => file.extract(dst),
-        }
-    }
-}
-
-fn main() -> std::io::Result<()> {
+fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
     if args.len() < 4 {
         println!("usage: autoupdater pid process archives...");
@@ -130,7 +95,7 @@ fn main() -> std::io::Result<()> {
 }
 
 #[cfg(windows)]
-fn spawn_detached_process(program_path: &Path) -> std::io::Result<process::Child> {
+fn spawn_detached_process(program_path: &Path) -> io::Result<process::Child> {
     use std::os::windows::process::CommandExt;
 
     const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
@@ -142,7 +107,7 @@ fn spawn_detached_process(program_path: &Path) -> std::io::Result<process::Child
 }
 
 #[cfg(not(windows))]
-fn spawn_detached_process(program_path: &Path) -> std::io::Result<process::Child> {
+fn spawn_detached_process(program_path: &Path) -> io::Result<process::Child> {
     process::Command::new(program_path).spawn()
 }
 
