@@ -610,7 +610,7 @@ dependencies = [
 
 [[package]]
 name = "this_updater_of_mine"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "flate2",
  "sysinfo",
