@@ -7,10 +7,10 @@ edition = "2021"
 
 [dependencies]
 flate2 = "1.0"
-sysinfo = "0.30"
+sysinfo = "0.33"
 tar = "0.4"
-zip = "0.6"
-zip-extensions = "0.6"
+zip = "2.2"
+zip-extensions = "0.8"
 
 [profile.release]
 opt-level = "z" # Optimize for size.

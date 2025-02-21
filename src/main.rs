@@ -112,12 +112,16 @@ fn spawn_detached_process(program_path: &Path) -> io::Result<process::Child> {
 }
 
 fn wait_for_process(pid: Pid) {
-    let s =
-        System::new_with_specifics(RefreshKind::new().with_processes(ProcessRefreshKind::new()));
+    let s = System::new_with_specifics(
+        RefreshKind::nothing().with_processes(ProcessRefreshKind::nothing()),
+    );
 
     // wait for process to exit
     if let Some(process) = s.process(pid) {
-        println!("waiting for process {0} ({pid}) to exit...", process.name());
+        println!(
+            "waiting for process {0:?} ({pid}) to exit...",
+            process.name()
+        );
         process.wait();
     }
 }
