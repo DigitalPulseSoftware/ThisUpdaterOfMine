@@ -20,10 +20,11 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-        - { runner: windows-latest, os: windows, arch: x64 }
-        - { runner: ubuntu-latest,  os: linux,   arch: x86_64 }
-        - { runner: macos-latest,   os: macos,   arch: x86_64 }
-        #- { runner: macos-latest,   os: macos,   arch: arm64 }
+        - { runner: windows-latest,   os: windows, arch: x64 }
+        - { runner: ubuntu-latest,    os: linux,   arch: x86_64 }
+        - { runner: ubuntu-24.04-arm, os: linux,   arch: arm64 }
+        - { runner: macos-latest,     os: macos,   arch: x86_64 }
+        - { runner: macos-latest,     os: macos,   arch: arm64 }
 
     runs-on: ${{ matrix.platform.runner }}
 
