@@ -33,11 +33,28 @@ struct Opt {
     #[structopt(short, long, help = "Executable to launch after update")]
     executable: Option<PathBuf>,
 
+    #[structopt(long = "arg", help = "Argument to pass to the executable")]
     executable_args: Vec<String>,
+
+    // For retrocompatibility
+    positional_args: Vec<String>
 }
 
 fn main() -> io::Result<()> {
-    let opt = Opt::from_args();
+    let mut opt = Opt::from_args();
+
+    if !opt.positional_args.is_empty() {
+        if opt.positional_args.len() < 3 {
+            println!("usage: autoupdater pid process archives...");
+            return Ok(());
+        }
+
+        opt.pid = Some(opt.positional_args[0].parse().expect("pid must be a number"));
+        opt.executable = Some(PathBuf::from(&opt.positional_args[1]));
+        for archive_file in &opt.positional_args[2..] {
+            opt.archives.push(PathBuf::from(archive_file));
+        }
+    }
 
     if let Some(pid) = opt.pid {
         wait_for_process(Pid::from_u32(pid));
