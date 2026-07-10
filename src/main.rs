@@ -37,7 +37,7 @@ struct Opt {
     executable_args: Vec<String>,
 
     // For retrocompatibility
-    positional_args: Vec<String>
+    positional_args: Vec<String>,
 }
 
 fn main() -> io::Result<()> {
@@ -49,7 +49,11 @@ fn main() -> io::Result<()> {
             return Ok(());
         }
 
-        opt.pid = Some(opt.positional_args[0].parse().expect("pid must be a number"));
+        opt.pid = Some(
+            opt.positional_args[0]
+                .parse()
+                .expect("pid must be a number"),
+        );
         opt.executable = Some(PathBuf::from(&opt.positional_args[1]));
         for archive_file in &opt.positional_args[2..] {
             opt.archives.push(PathBuf::from(archive_file));
